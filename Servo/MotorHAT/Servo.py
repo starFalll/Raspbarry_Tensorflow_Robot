@@ -259,7 +259,7 @@ def loop():
 				t_stop(0)     #停止
 			elif command == '0':
 			#ser.write("Servo all stop\n")
-			#Servo_stop()
+				Servo_stop()
 				time.sleep(ServoDelayTime)
 			elif command =='1':  #底座左转
 			#ser.write("MeArm turn Left\n")
