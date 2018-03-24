@@ -247,13 +247,13 @@ def loop():
 			print i
 			i+=1
 			command=sys.stdin.read(1)
-			if command == 'a':
+			if command == 'w':
 				t_up(50,0)    #前进
-			elif command == 'b':
+			elif command == 's':
 				t_down(50,0)  #后退
-			elif command == 'c':
-				t_right(50,0) #右转
 			elif command == 'd':
+				t_right(50,0) #右转
+			elif command == 'a':
 				t_left(50,0)  #左转
 			elif command == 'f':
 				t_stop(0)     #停止
@@ -261,34 +261,34 @@ def loop():
 			#ser.write("Servo all stop\n")
 			#Servo_stop()
 				time.sleep(ServoDelayTime)
-			elif command =='1':  #1
+			elif command =='1':  #底座左转
 			#ser.write("MeArm turn Left\n")
 				BottomLeft()
 				time.sleep(ServoDelayTime)
-			elif command =='2':  #2
+			elif command =='2':  #底座右转
 			#ser.write("MeArm turn Right\n")
 				BottomRight()
 				time.sleep(ServoDelayTime)
-			elif command =='4':  #4
+			elif command =='3':  #上臂舵机向上
 			#ser.write("Arm A Up\n")
 				Arm_A_Up()
 				time.sleep(ServoDelayTime)
-			elif command =='J':  #上
+			elif command =='4':  #上臂舵机向下
 			#ser.write("Arm A Down\n")
 				Arm_A_Down()
 				time.sleep(ServoDelayTime)         
-			elif command =='L':   #左
+			elif command =='5':   #下臂舵机向上
 			#ser.write("Arm B Up\n")
 				Arm_B_Up()
 				time.sleep(ServoDelayTime) 
-			elif command =='K':    #下
+			elif command =='6':    #下臂舵机向下
 			#ser.write("Arm B Down\n")
 				Arm_B_Down()
 				time.sleep(ServoDelayTime)            
-			elif command =='G':  #打开手爪 （加速）
+			elif command =='7':  #打开手爪 （加速）
 			#ser.write("Clamp Open\n")
 				ClampOpen()
-			elif command =='H':  #闭合手爪 （减速）
+			elif command =='8':  #闭合手爪 （减速）
 			#ser.write("Clamp Close\n")
 				ClampClose()
 
