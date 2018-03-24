@@ -5,8 +5,11 @@ import RPi.GPIO as GPIO
 import time
 import sys
 import serial
+import tty
+import select
+import termios
 
-ser = serial.Serial("/dev/ttyAMA0",9600)  #串口波特率设置
+#ser = serial.Serial("/dev/ttyAMA0",9600)  #串口波特率设置
 
 PWMA   = 18
 AIN1   = 22
@@ -231,56 +234,64 @@ def Servo_stop(): #停止所有舵机
   write(myservo2,ms2currentAngle)
   write(myservo3,ms3currentAngle) 
   write(myservo4,ms4currentAngle) 
-  
+ 
+def isData():
+	return select.select([sys.stdin],[],[],0)!=([sys.stdin],[],[]) 
+
 def loop():
+	i=1
         while True:
-          command=ser.read()
-          ser.write(command +'\n')#回显
-          if command == 'A':
-            t_up(50,0)    #前进
-          elif command == 'B':
-            t_down(50,0)  #后退
-          elif command == 'D':
-            t_right(50,0) #右转
-          elif command == 'C':
-            t_left(50,0)  #左转
-          elif command == 'F':
-            t_stop(0)     #停止
-          elif command == '0':
-            ser.write("Servo all stop\n")
-            #Servo_stop()
-            time.sleep(ServoDelayTime)
-          elif command =='1':  #1
-            ser.write("MeArm turn Left\n")
-            BottomLeft()
-            time.sleep(ServoDelayTime)
-          elif command =='2':  #2
-            ser.write("MeArm turn Right\n")
-            BottomRight()
-            time.sleep(ServoDelayTime)
-          elif command =='4':  #4
-            ser.write("Arm A Up\n")
-            Arm_A_Up()
-            time.sleep(ServoDelayTime)
-          elif command =='J':  #上
-            ser.write("Arm A Down\n")
-            Arm_A_Down()
-            time.sleep(ServoDelayTime)         
-          elif command =='L':   #左
-            ser.write("Arm B Up\n")
-            Arm_B_Up()
-            time.sleep(ServoDelayTime) 
-          elif command =='K':    #下
-            ser.write("Arm B Down\n")
-            Arm_B_Down()
-            time.sleep(ServoDelayTime)            
-          elif command =='G':  #打开手爪 （加速）
-            ser.write("Clamp Open\n")
-            ClampOpen()
-          elif command =='H':  #闭合手爪 （减速）
-            ser.write("Clamp Close\n")
-            ClampClose()
-            
+          #command=ser.read()
+          #ser.write(command +'\n')#回显
+		if isData():
+			print i
+			i+=1
+			command=sys.stdin.read(1)
+			if command == 'a':
+				t_up(50,0)    #前进
+			elif command == 'b':
+				t_down(50,0)  #后退
+			elif command == 'c':
+				t_right(50,0) #右转
+			elif command == 'd':
+				t_left(50,0)  #左转
+			elif command == 'f':
+				t_stop(0)     #停止
+			elif command == '0':
+			#ser.write("Servo all stop\n")
+			#Servo_stop()
+				time.sleep(ServoDelayTime)
+			elif command =='1':  #1
+			#ser.write("MeArm turn Left\n")
+				BottomLeft()
+				time.sleep(ServoDelayTime)
+			elif command =='2':  #2
+			#ser.write("MeArm turn Right\n")
+				BottomRight()
+				time.sleep(ServoDelayTime)
+			elif command =='4':  #4
+			#ser.write("Arm A Up\n")
+				Arm_A_Up()
+				time.sleep(ServoDelayTime)
+			elif command =='J':  #上
+			#ser.write("Arm A Down\n")
+				Arm_A_Down()
+				time.sleep(ServoDelayTime)         
+			elif command =='L':   #左
+			#ser.write("Arm B Up\n")
+				Arm_B_Up()
+				time.sleep(ServoDelayTime) 
+			elif command =='K':    #下
+			#ser.write("Arm B Down\n")
+				Arm_B_Down()
+				time.sleep(ServoDelayTime)            
+			elif command =='G':  #打开手爪 （加速）
+			#ser.write("Clamp Open\n")
+				ClampOpen()
+			elif command =='H':  #闭合手爪 （减速）
+			#ser.write("Clamp Close\n")
+				ClampClose()
+
 def destroy():
 	GPIO.cleanup()
 
@@ -292,7 +303,13 @@ if __name__ == "__main__":
         R_Motor.start(0)
         keysacn()
         Re_Servo()
+
+	old_settings=termios.tcgetattr(sys.stdin)
         try:
-                loop()
+
+		tty.setcbreak(sys.stdin.fileno())
+		loop()
         except KeyboardInterrupt:
                 destroy()
+	finally:
+		termios.tcsetattr(sys.stdin,termios.TCSADRAIN,old_settings)
