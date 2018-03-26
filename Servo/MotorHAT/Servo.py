@@ -61,7 +61,7 @@ ms3currentAngle = 0
 #底座
 ms4MIN = 0
 ms4MAX = 170
-ms4INITANGLE = 90
+ms4INITANGLE = 60
 ms4currentAngle = 0
 
 ServoDelayTime = 0.05 #舵机响应时间
@@ -247,6 +247,7 @@ def loop():
 			print i
 			i+=1
 			command=sys.stdin.read(1)
+			print command
 			if command == 'w':
 				t_up(50,0)    #前进
 			elif command == 's':
@@ -259,32 +260,32 @@ def loop():
 				t_stop(0)     #停止
 			elif command == '0':
 			#ser.write("Servo all stop\n")
-			#Servo_stop()
+				Servo_stop()
 				time.sleep(ServoDelayTime)
 			elif command =='1':  #底座左转
 			#ser.write("MeArm turn Left\n")
 				BottomLeft()
-				time.sleep(ServoDelayTime)
+			#time.sleep(ServoDelayTime)
 			elif command =='2':  #底座右转
 			#ser.write("MeArm turn Right\n")
 				BottomRight()
-				time.sleep(ServoDelayTime)
+			#time.sleep(ServoDelayTime)
 			elif command =='3':  #上臂舵机向上
 			#ser.write("Arm A Up\n")
 				Arm_A_Up()
-				time.sleep(ServoDelayTime)
+			#time.sleep(ServoDelayTime)
 			elif command =='4':  #上臂舵机向下
 			#ser.write("Arm A Down\n")
 				Arm_A_Down()
-				time.sleep(ServoDelayTime)         
+			#time.sleep(ServoDelayTime)         
 			elif command =='5':   #下臂舵机向上
 			#ser.write("Arm B Up\n")
 				Arm_B_Up()
-				time.sleep(ServoDelayTime) 
+			#time.sleep(ServoDelayTime) 
 			elif command =='6':    #下臂舵机向下
 			#ser.write("Arm B Down\n")
 				Arm_B_Down()
-				time.sleep(ServoDelayTime)            
+			#time.sleep(ServoDelayTime)            
 			elif command =='7':  #打开手爪 （加速）
 			#ser.write("Clamp Open\n")
 				ClampOpen()
