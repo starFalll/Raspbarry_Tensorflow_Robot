@@ -49,7 +49,7 @@ ms1currentAngle = 0
 #上臂电机
 ms2MIN = 10
 ms2MAX = 140
-ms2INITANGLE = 90
+ms2INITANGLE =90
 ms2currentAngle = 0
 
 #下臂电机
@@ -61,7 +61,7 @@ ms3currentAngle = 0
 #底座
 ms4MIN = 0
 ms4MAX = 170
-ms4INITANGLE = 60
+ms4INITANGLE = 90
 ms4currentAngle = 0
 
 ServoDelayTime = 0.05 #舵机响应时间
