@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from Adafruit_PWM_Servo_Driver import PWM
 import RPi.GPIO as GPIO
+import thread
 import time
 import sys
 import serial
@@ -11,20 +12,6 @@ import termios
 
 #ser = serial.Serial("/dev/ttyAMA0",9600)  #串口波特率设置
 
-PWMA   = 18
-AIN1   = 22
-AIN2   = 27
-
-PWMB   = 23
-BIN1   = 25
-BIN2   = 24
-
-BtnPin  = 19
-Gpin    = 5
-Rpin    = 6
-
-TRIG = 20
-ECHO = 21
 # Initialise the PWM device using the default address
 # bmp = PWM(0x40, debug=True)
 pwm = PWM(0x40,debug = False)
@@ -41,21 +28,21 @@ SERVOS = 4  #舵机数4个
 
 #定义舵机的角度值初始化
 #手爪
-ms1MIN = 10
+ms1MIN = 13
 ms1MAX = 50
-ms1INITANGLE = 28
+ms1INITANGLE = 30
 ms1currentAngle = 0
 
 #上臂电机
-ms2MIN = 10
-ms2MAX = 140
-ms2INITANGLE =90
+ms2MIN = 90
+ms2MAX = 170
+ms2INITANGLE =100
 ms2currentAngle = 0
 
 #下臂电机
 ms3MIN = 40
 ms3MAX = 170
-ms3INITANGLE = 90
+ms3INITANGLE = 70
 ms3currentAngle = 0
 
 #底座
@@ -68,6 +55,27 @@ ServoDelayTime = 0.05 #舵机响应时间
 delta = 5        #舵机转动幅度
 delta_bottom = 2 #底座舵机转动幅度
 
+#car 
+GPIO_M1 = 27
+GPIO_M11 = 5
+GPIO_M2 = 6
+GPIO_M22 = 12
+GPIO_M3 = 13
+GPIO_M33 = 19
+GPIO_M4 = 17
+GPIO_M44 = 18
+GPIO_S = 21 
+GPIO_R1 = 20
+#GPIO_R2 = 21
+GPIO_R2 = 22
+GPIO_STEP1 = 23
+GPIO_STEP2 = 24
+GPIO_STEP3 = 25
+GPIO_STEP4 = 26
+car_sleep = 0.05
+var1 = 0
+var2 = 0
+signal = 0
 
 def setServoPulse(channel, pulse):
   pulseLength = 1000000.0                   # 1,000,000 us per second
@@ -87,87 +95,137 @@ def write(servonum,x):
   y=max(y,0.5)
   y=min(y,2.5)
   setServoPulse(servonum,y)
-  
-def t_up(speed,t_time):
-        L_Motor.ChangeDutyCycle(speed)
-        GPIO.output(AIN2,False)#AIN2
-        GPIO.output(AIN1,True) #AIN1
 
-        R_Motor.ChangeDutyCycle(speed)
-        GPIO.output(BIN2,False)#BIN2
-        GPIO.output(BIN1,True) #BIN1
-        time.sleep(t_time)
+def setStep(w1, w2, w3, w4):  
+	GPIO.output(GPIO_STEP1, w1)  
+	time.sleep(0.01)
+	GPIO.output(GPIO_STEP2, w2)  
+	time.sleep(0.01)
+	GPIO.output(GPIO_STEP3, w3)  
+	time.sleep(0.01)	
+	GPIO.output(GPIO_STEP4, w4)
+	time.sleep(0.01)
+
+def b_up():
+	for i in range(5):
+		setStep(1, 0, 0, 0)
+		setStep(0, 1, 0, 0)
+		setStep(0, 0, 1, 0)
+		setStep(0, 0, 0, 1)
+
+def b_down():
+	i = 0
+	while(i < 5):
+        	setStep(0, 0, 0, 1)        
+        	setStep(0, 0, 1, 0)
+        	setStep(0, 1, 0, 0)
+        	setStep(1, 0, 0, 0)
+		i+=1
+
+def t_down():
+        GPIO.output(GPIO_M1,GPIO.LOW)
+	GPIO.output(GPIO_M11,GPIO.HIGH)
+	GPIO.output(GPIO_M2,GPIO.LOW)
+	GPIO.output(GPIO_M22,GPIO.HIGH)
+	GPIO.output(GPIO_M3,GPIO.LOW)
+	GPIO.output(GPIO_M33,GPIO.HIGH)
+	GPIO.output(GPIO_M4,GPIO.LOW)
+	GPIO.output(GPIO_M44,GPIO.HIGH)        
+
+def t_stop():
+	GPIO.output(GPIO_M1,GPIO.LOW)
+        GPIO.output(GPIO_M11,GPIO.LOW)
+        GPIO.output(GPIO_M2,GPIO.LOW)
+        GPIO.output(GPIO_M22,GPIO.LOW)
+        GPIO.output(GPIO_M3,GPIO.LOW)
+        GPIO.output(GPIO_M33,GPIO.LOW)
+        GPIO.output(GPIO_M4,GPIO.LOW)
+        GPIO.output(GPIO_M44,GPIO.LOW)
         
-def t_stop(t_time):
-        L_Motor.ChangeDutyCycle(0)
-        GPIO.output(AIN2,False)#AIN2
-        GPIO.output(AIN1,False) #AIN1
+def t_up():
+	GPIO.output(GPIO_M1,GPIO.HIGH)
+        GPIO.output(GPIO_M11,GPIO.LOW)
+        GPIO.output(GPIO_M2,GPIO.HIGH)
+        GPIO.output(GPIO_M22,GPIO.LOW)
+        GPIO.output(GPIO_M3,GPIO.HIGH)
+        GPIO.output(GPIO_M33,GPIO.LOW)
+        GPIO.output(GPIO_M4,GPIO.HIGH)
+        GPIO.output(GPIO_M44,GPIO.LOW)
 
-        R_Motor.ChangeDutyCycle(0)
-        GPIO.output(BIN2,False)#BIN2
-        GPIO.output(BIN1,False) #BIN1
-        time.sleep(t_time)
-        
-def t_down(speed,t_time):
-        L_Motor.ChangeDutyCycle(speed)
-        GPIO.output(AIN2,True)#AIN2
-        GPIO.output(AIN1,False) #AIN1
+def t_left():
+	GPIO.output(GPIO_M1,GPIO.HIGH)
+        GPIO.output(GPIO_M11,GPIO.LOW)
+        GPIO.output(GPIO_M2,GPIO.LOW)
+        GPIO.output(GPIO_M22,GPIO.HIGH)
+        GPIO.output(GPIO_M3,GPIO.HIGH)
+        GPIO.output(GPIO_M33,GPIO.LOW)
+        GPIO.output(GPIO_M4,GPIO.LOW)
+        GPIO.output(GPIO_M44,GPIO.HIGH)
 
-        R_Motor.ChangeDutyCycle(speed)
-        GPIO.output(BIN2,True)#BIN2
-        GPIO.output(BIN1,False) #BIN1
-        time.sleep(t_time)
+def t_right():
+	GPIO.output(GPIO_M1,GPIO.LOW)
+        GPIO.output(GPIO_M11,GPIO.HIGH)
+        GPIO.output(GPIO_M2,GPIO.HIGH)
+        GPIO.output(GPIO_M22,GPIO.LOW)
+        GPIO.output(GPIO_M3,GPIO.LOW)
+        GPIO.output(GPIO_M33,GPIO.HIGH)
+        GPIO.output(GPIO_M4,GPIO.HIGH)
+        GPIO.output(GPIO_M44,GPIO.LOW)
 
-def t_left(speed,t_time):
-        L_Motor.ChangeDutyCycle(speed)
-        GPIO.output(AIN2,True)#AIN2
-        GPIO.output(AIN1,False) #AIN1
-
-        R_Motor.ChangeDutyCycle(speed)
-        GPIO.output(BIN2,False)#BIN2
-        GPIO.output(BIN1,True) #BIN1
-        time.sleep(t_time)
-
-def t_right(speed,t_time):
-        L_Motor.ChangeDutyCycle(speed)
-        GPIO.output(AIN2,False)#AIN2
-        GPIO.output(AIN1,True) #AIN1
-
-        R_Motor.ChangeDutyCycle(speed)
-        GPIO.output(BIN2,True)#BIN2
-        GPIO.output(BIN1,False) #BIN1
-        time.sleep(t_time)
-        
-def keysacn():
-    val = GPIO.input(BtnPin)
-    while GPIO.input(BtnPin) == False:
-        val = GPIO.input(BtnPin)
-    while GPIO.input(BtnPin) == True:
-        time.sleep(0.01)
-        val = GPIO.input(BtnPin)
-        if val == True:
-            GPIO.output(Rpin,1)
-            while GPIO.input(BtnPin) == False:
-                GPIO.output(Rpin,0)
-        else:
-            GPIO.output(Rpin,0)
-            
+def checkdist(GPIO_R,var):
+	global signal
+	while True:
+		if signal == 1:
+			continue
+		else:
+			signal = 1
+		print GPIO_R
+		#发出发信号
+        	GPIO.output(GPIO_S,GPIO.HIGH)
+        	#保持15us
+        	time.sleep(0.000015)
+        	GPIO.output(GPIO_S,GPIO.LOW)
+        	while not GPIO.input(GPIO_R):
+                	pass
+       		#发现高电平时开时计时
+        	t1 = time.time()
+        	while GPIO.input(GPIO_R):
+                	pass
+        	#高电平结束停止计时
+        	t2 = time.time()
+        	#返回距离，单位为米
+        	dist = (t2-t1)*340/2
+ 		if dist < 0.05:
+			t_stop()
+			var = 1
+			time.sleep(1)
+		else:
+			var = 0
+		print dist
+		signal = 0
+		time.sleep(0.01)
+           
 def setup():
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
-        
-        GPIO.setup(Gpin, GPIO.OUT)     # Set Green Led Pin mode to output
-        GPIO.setup(Rpin, GPIO.OUT)     # Set Red Led Pin mode to output
-        GPIO.setup(BtnPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)    # Set BtnPin's mode is input, and pull up to high level(3.3V)
 
-        GPIO.setup(AIN2,GPIO.OUT)
-        GPIO.setup(AIN1,GPIO.OUT)
-        GPIO.setup(PWMA,GPIO.OUT)
-        
-        GPIO.setup(BIN1,GPIO.OUT)
-        GPIO.setup(BIN2,GPIO.OUT)
-        GPIO.setup(PWMB,GPIO.OUT)
-        pwm.setPWMFreq(50)                        # Set frequency to 60 Hz
+	GPIO.setup(GPIO_M1,GPIO.OUT)
+	GPIO.setup(GPIO_M11,GPIO.OUT)
+	GPIO.setup(GPIO_M1,GPIO.OUT)
+        GPIO.setup(GPIO_M2,GPIO.OUT)
+	GPIO.setup(GPIO_M22,GPIO.OUT)
+        GPIO.setup(GPIO_M3,GPIO.OUT)
+	GPIO.setup(GPIO_M33,GPIO.OUT)
+        GPIO.setup(GPIO_M4,GPIO.OUT)
+	GPIO.setup(GPIO_M44,GPIO.OUT)
+        GPIO.setup(GPIO_S,GPIO.OUT)
+	GPIO.setup(GPIO_STEP1,GPIO.OUT)
+        GPIO.setup(GPIO_STEP2,GPIO.OUT)
+	GPIO.setup(GPIO_STEP3,GPIO.OUT)
+        GPIO.setup(GPIO_STEP4,GPIO.OUT)
+	GPIO.setup(GPIO_R1,GPIO.IN)
+        GPIO.setup(GPIO_R2,GPIO.IN)
+        #GPIO.setup(GPIO_R3,GPIO.IN)
         
 def Re_Servo():
   global  ms1currentAngle
@@ -240,25 +298,36 @@ def isData():
 
 def loop():
 	i=1
+	try:
+		thread.start_new_thread(checkdist,(GPIO_R1,var1,))
+		thread.start_new_thread(checkdist,(GPIO_R2,var2,))
+	except:
+		print "Error:unable to start thread"
         while True:
-          #command=ser.read()
+	  #command=ser.read()
           #ser.write(command +'\n')#回显
+		time.sleep(0.001)
 		if isData():
 			print i
 			i+=1
 			command=sys.stdin.read(1)
 			print command
 			if command == 'w':
-				t_up(50,0)    #前进
+				t_up()    #前进
 			elif command == 's':
-				t_down(50,0)  #后退
-			elif command == 'd':
-				t_right(50,0) #右转
-			elif command == 'a':
-				t_left(50,0)  #左转
+				t_down()  #后退
+			elif command == 'd' and var2 == 0:
+				t_right() #右转
+			elif command == 'a' and var1 == 0:
+				t_left()  #左转
+			elif command == 'q':
+				b_up()
+			elif command == 'e':
+				b_down()
+			#time.sleep(car_sleep)
 			elif command == 'f':
-				t_stop(0)     #停止
-			elif command == '0':
+				t_stop()
+			if command == '0':
 			#ser.write("Servo all stop\n")
 				Servo_stop()
 				time.sleep(ServoDelayTime)
@@ -292,17 +361,12 @@ def loop():
 			elif command =='8':  #闭合手爪 （减速）
 			#ser.write("Clamp Close\n")
 				ClampClose()
-
+			elif command =='\x1b':break
 def destroy():
 	GPIO.cleanup()
 
 if __name__ == "__main__":
         setup()
-        L_Motor= GPIO.PWM(PWMA,100)
-        L_Motor.start(0)
-        R_Motor = GPIO.PWM(PWMB,100)
-        R_Motor.start(0)
-        keysacn()
         Re_Servo()
 
 	old_settings=termios.tcgetattr(sys.stdin)
@@ -310,7 +374,11 @@ if __name__ == "__main__":
 
 		tty.setcbreak(sys.stdin.fileno())
 		loop()
-        except KeyboardInterrupt:
+        #except KeyboardInterrupt:
                 destroy()
+		print "end"
+	except KeyboardInterrupt:
+		destory()
+		print "end"
 	finally:
 		termios.tcsetattr(sys.stdin,termios.TCSADRAIN,old_settings)
