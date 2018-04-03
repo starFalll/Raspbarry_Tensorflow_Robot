@@ -12,6 +12,8 @@ import termios
 
 #ser = serial.Serial("/dev/ttyAMA0",9600)  #串口波特率设置
 
+#Gpin=5
+#Rpin=6
 # Initialise the PWM device using the default address
 # bmp = PWM(0x40, debug=True)
 pwm = PWM(0x40,debug = False)
@@ -34,15 +36,15 @@ ms1INITANGLE = 30
 ms1currentAngle = 0
 
 #上臂电机
-ms2MIN = 90
+ms2MIN = 10
 ms2MAX = 170
-ms2INITANGLE =100
+ms2INITANGLE =90
 ms2currentAngle = 0
 
 #下臂电机
-ms3MIN = 40
+ms3MIN = 30
 ms3MAX = 170
-ms3INITANGLE = 70
+ms3INITANGLE = 90
 ms3currentAngle = 0
 
 #底座
@@ -56,23 +58,23 @@ delta = 5        #舵机转动幅度
 delta_bottom = 2 #底座舵机转动幅度
 
 #car 
-GPIO_M1 = 27
-GPIO_M11 = 5
-GPIO_M2 = 6
-GPIO_M22 = 12
-GPIO_M3 = 13
-GPIO_M33 = 19
-GPIO_M4 = 17
-GPIO_M44 = 18
+PWMA = 18
+AIN1   =  22
+AIN2   =  27
+
+PWMB = 23
+BIN1   = 25
+BIN2  =  24
+
 GPIO_S = 21 
 GPIO_R1 = 20
-#GPIO_R2 = 21
-GPIO_R2 = 22
-GPIO_STEP1 = 23
-GPIO_STEP2 = 24
-GPIO_STEP3 = 25
+GPIO_R2 = 5
+GPIO_STEP1 = 6
+GPIO_STEP2 = 13
+GPIO_STEP3 = 19
 GPIO_STEP4 = 26
 car_sleep = 0.05
+car_speed = 70
 var1 = 0
 var2 = 0
 signal = 0
@@ -100,77 +102,73 @@ def setStep(w1, w2, w3, w4):
 	GPIO.output(GPIO_STEP1, w1)  
 	time.sleep(0.01)
 	GPIO.output(GPIO_STEP2, w2)  
+	
 	time.sleep(0.01)
 	GPIO.output(GPIO_STEP3, w3)  
-	time.sleep(0.01)	
+	time.sleep(0.01)
 	GPIO.output(GPIO_STEP4, w4)
 	time.sleep(0.01)
-
 def b_up():
-	for i in range(5):
-		setStep(1, 0, 0, 0)
-		setStep(0, 1, 0, 0)
-		setStep(0, 0, 1, 0)
-		setStep(0, 0, 0, 1)
+	setStep(1, 0, 0, 0)
+	setStep(0, 1, 0, 0)
+	setStep(0, 0, 1, 0)
+	setStep(0, 0, 0, 1)
 
 def b_down():
-	i = 0
-	while(i < 5):
-        	setStep(0, 0, 0, 1)        
-        	setStep(0, 0, 1, 0)
-        	setStep(0, 1, 0, 0)
-        	setStep(1, 0, 0, 0)
-		i+=1
+       	setStep(0, 0, 0, 1)        
+       	setStep(0, 0, 1, 0)
+       	setStep(0, 1, 0, 0)
+       	setStep(1, 0, 0, 0)
 
-def t_down():
-        GPIO.output(GPIO_M1,GPIO.LOW)
-	GPIO.output(GPIO_M11,GPIO.HIGH)
-	GPIO.output(GPIO_M2,GPIO.LOW)
-	GPIO.output(GPIO_M22,GPIO.HIGH)
-	GPIO.output(GPIO_M3,GPIO.LOW)
-	GPIO.output(GPIO_M33,GPIO.HIGH)
-	GPIO.output(GPIO_M4,GPIO.LOW)
-	GPIO.output(GPIO_M44,GPIO.HIGH)        
+def t_up(speed,t_time):
+        L_Motor.ChangeDutyCycle(speed)
+        GPIO.output(AIN2,False)#AIN2
+        GPIO.output(AIN1,True) #AIN1
 
-def t_stop():
-	GPIO.output(GPIO_M1,GPIO.LOW)
-        GPIO.output(GPIO_M11,GPIO.LOW)
-        GPIO.output(GPIO_M2,GPIO.LOW)
-        GPIO.output(GPIO_M22,GPIO.LOW)
-        GPIO.output(GPIO_M3,GPIO.LOW)
-        GPIO.output(GPIO_M33,GPIO.LOW)
-        GPIO.output(GPIO_M4,GPIO.LOW)
-        GPIO.output(GPIO_M44,GPIO.LOW)
+        R_Motor.ChangeDutyCycle(speed)
+        GPIO.output(BIN2,False)#BIN2
+        GPIO.output(BIN1,True) #BIN1
+        time.sleep(t_time)
         
-def t_up():
-	GPIO.output(GPIO_M1,GPIO.HIGH)
-        GPIO.output(GPIO_M11,GPIO.LOW)
-        GPIO.output(GPIO_M2,GPIO.HIGH)
-        GPIO.output(GPIO_M22,GPIO.LOW)
-        GPIO.output(GPIO_M3,GPIO.HIGH)
-        GPIO.output(GPIO_M33,GPIO.LOW)
-        GPIO.output(GPIO_M4,GPIO.HIGH)
-        GPIO.output(GPIO_M44,GPIO.LOW)
+def t_stop(t_time):
+        L_Motor.ChangeDutyCycle(0)
+        GPIO.output(AIN2,False)#AIN2
+        GPIO.output(AIN1,False) #AIN1
 
-def t_left():
-	GPIO.output(GPIO_M1,GPIO.HIGH)
-        GPIO.output(GPIO_M11,GPIO.LOW)
-        GPIO.output(GPIO_M2,GPIO.LOW)
-        GPIO.output(GPIO_M22,GPIO.HIGH)
-        GPIO.output(GPIO_M3,GPIO.HIGH)
-        GPIO.output(GPIO_M33,GPIO.LOW)
-        GPIO.output(GPIO_M4,GPIO.LOW)
-        GPIO.output(GPIO_M44,GPIO.HIGH)
+        R_Motor.ChangeDutyCycle(0)
+        GPIO.output(BIN2,False)#BIN2
+        GPIO.output(BIN1,False) #BIN1
+        time.sleep(t_time)
+        
+def t_down(speed,t_time):
+        L_Motor.ChangeDutyCycle(speed)
+        GPIO.output(AIN2,True)#AIN2
+        GPIO.output(AIN1,False) #AIN1
 
-def t_right():
-	GPIO.output(GPIO_M1,GPIO.LOW)
-        GPIO.output(GPIO_M11,GPIO.HIGH)
-        GPIO.output(GPIO_M2,GPIO.HIGH)
-        GPIO.output(GPIO_M22,GPIO.LOW)
-        GPIO.output(GPIO_M3,GPIO.LOW)
-        GPIO.output(GPIO_M33,GPIO.HIGH)
-        GPIO.output(GPIO_M4,GPIO.HIGH)
-        GPIO.output(GPIO_M44,GPIO.LOW)
+        R_Motor.ChangeDutyCycle(speed)
+        GPIO.output(BIN2,True)#BIN2
+        GPIO.output(BIN1,False) #BIN1
+        time.sleep(t_time)
+
+def t_left(speed,t_time):
+        L_Motor.ChangeDutyCycle(speed)
+        GPIO.output(AIN2,True)#AIN2
+        GPIO.output(AIN1,False) #AIN1
+
+        R_Motor.ChangeDutyCycle(speed)
+        GPIO.output(BIN2,False)#BIN2
+        GPIO.output(BIN1,True) #BIN1
+        time.sleep(t_time)
+
+def t_right(speed,t_time):
+        L_Motor.ChangeDutyCycle(speed)
+        GPIO.output(AIN2,False)#AIN2
+        GPIO.output(AIN1,True) #AIN1
+
+        R_Motor.ChangeDutyCycle(speed)
+        GPIO.output(BIN2,True)#BIN2
+        GPIO.output(BIN1,False) #BIN1
+        time.sleep(t_time)    
 
 def checkdist(GPIO_R,var):
 	global signal
@@ -196,28 +194,27 @@ def checkdist(GPIO_R,var):
         	#返回距离，单位为米
         	dist = (t2-t1)*340/2
  		if dist < 0.05:
-			t_stop()
 			var = 1
-			time.sleep(1)
+			#t_stop(1)
 		else:
 			var = 0
 		print dist
 		signal = 0
-		time.sleep(0.01)
+		time.sleep(0.1)
            
 def setup():
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
+	
+	GPIO.setup(AIN2,GPIO.OUT)
+	GPIO.setup(AIN1,GPIO.OUT)
+	GPIO.setup(PWMA,GPIO.OUT)
 
-	GPIO.setup(GPIO_M1,GPIO.OUT)
-	GPIO.setup(GPIO_M11,GPIO.OUT)
-	GPIO.setup(GPIO_M1,GPIO.OUT)
-        GPIO.setup(GPIO_M2,GPIO.OUT)
-	GPIO.setup(GPIO_M22,GPIO.OUT)
-        GPIO.setup(GPIO_M3,GPIO.OUT)
-	GPIO.setup(GPIO_M33,GPIO.OUT)
-        GPIO.setup(GPIO_M4,GPIO.OUT)
-	GPIO.setup(GPIO_M44,GPIO.OUT)
+	GPIO.setup(BIN1,GPIO.OUT)
+	GPIO.setup(BIN2,GPIO.OUT)
+	GPIO.setup(PWMB,GPIO.OUT)
+	pwm.setPWMFreq(50)
+
         GPIO.setup(GPIO_S,GPIO.OUT)
 	GPIO.setup(GPIO_STEP1,GPIO.OUT)
         GPIO.setup(GPIO_STEP2,GPIO.OUT)
@@ -236,7 +233,7 @@ def Re_Servo():
   write(myservo2,ms2INITANGLE)   #上臂  
   write(myservo3,ms3INITANGLE)   #下臂  
   write(myservo4,ms4INITANGLE)   #底座
-  
+  print "arm init"
   ms1currentAngle = ms1INITANGLE
   ms2currentAngle = ms2INITANGLE
   ms3currentAngle = ms3INITANGLE
@@ -292,83 +289,115 @@ def Servo_stop(): #停止所有舵机
   write(myservo2,ms2currentAngle)
   write(myservo3,ms3currentAngle) 
   write(myservo4,ms4currentAngle) 
+
+class _Getch:
+    def __init__(self):
+        try:
+            self.impl = _GetchWindows()
+        except ImportError:
+            self.impl = _GetchUnix()
  
-def isData():
-	return select.select([sys.stdin],[],[],0)!=([sys.stdin],[],[]) 
+    def __call__(self): return self.impl()
+  
+class _GetchUnix:
+    def __init__(self):
+        import tty, sys
+ 
+    def __call__(self):
+        import sys, tty, termios
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno(), termios.TCSANOW)
+            ch = sys.stdin.read(1)
+            #sys.stdout.write(ch)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+  
+class _GetchWindows:
+    def __init__(self):
+        import msvcrt
+ 
+    def __call__(self):
+        import msvcrt
+        return msvcrt.getch()
+  
+getch = _Getch() 
 
 def loop():
-	i=1
 	try:
 		thread.start_new_thread(checkdist,(GPIO_R1,var1,))
-		thread.start_new_thread(checkdist,(GPIO_R2,var2,))
+		#thread.start_new_thread(checkdist,(GPIO_R2,var2,))
+		pass
+			
 	except:
 		print "Error:unable to start thread"
-        while True:
-	  #command=ser.read()
-          #ser.write(command +'\n')#回显
-		time.sleep(0.001)
-		if isData():
-			print i
-			i+=1
-			command=sys.stdin.read(1)
-			print command
-			if command == 'w':
-				t_up()    #前进
-			elif command == 's':
-				t_down()  #后退
-			elif command == 'd' and var2 == 0:
-				t_right() #右转
-			elif command == 'a' and var1 == 0:
-				t_left()  #左转
-			elif command == 'q':
-				b_up()
-			elif command == 'e':
-				b_down()
-			#time.sleep(car_sleep)
-			elif command == 'f':
-				t_stop()
-			if command == '0':
-			#ser.write("Servo all stop\n")
-				Servo_stop()
-				time.sleep(ServoDelayTime)
-			elif command =='1':  #底座左转
-			#ser.write("MeArm turn Left\n")
-				BottomLeft()
-			#time.sleep(ServoDelayTime)
-			elif command =='2':  #底座右转
-			#ser.write("MeArm turn Right\n")
-				BottomRight()
-			#time.sleep(ServoDelayTime)
-			elif command =='3':  #上臂舵机向上
-			#ser.write("Arm A Up\n")
-				Arm_A_Up()
-			#time.sleep(ServoDelayTime)
-			elif command =='4':  #上臂舵机向下
-			#ser.write("Arm A Down\n")
-				Arm_A_Down()
-			#time.sleep(ServoDelayTime)         
-			elif command =='5':   #下臂舵机向上
-			#ser.write("Arm B Up\n")
-				Arm_B_Up()
-			#time.sleep(ServoDelayTime) 
-			elif command =='6':    #下臂舵机向下
-			#ser.write("Arm B Down\n")
-				Arm_B_Down()
-			#time.sleep(ServoDelayTime)            
-			elif command =='7':  #打开手爪 （加速）
-			#ser.write("Clamp Open\n")
-				ClampOpen()
-			elif command =='8':  #闭合手爪 （减速）
-			#ser.write("Clamp Close\n")
-				ClampClose()
-			elif command =='\x1b':break
+	while True:
+	     #command=ser.read()
+             #ser.write(command +'\n')#回显
+		command = getch()
+		print command
+		if command == 'w':
+			t_up(car_speed,0.05)    #前进
+		elif command == 's':
+			t_down(car_speed,0.05)  #后退
+		elif command == 'd' and var2 == 0:
+			t_right(car_speed,0.05) #右转
+		elif command == 'a' and var1 == 0:
+			t_left(car_speed,0.05)  #左转
+		elif command == 'q':
+			b_up()
+		elif command == 'e':
+			b_down()
+		#time.sleep(car_sleep)
+		t_stop(0)
+		if command == '0':
+		#ser.write("Servo all stop\n")
+			Servo_stop()
+			time.sleep(ServoDelayTime)
+		elif command =='1':  #底座左转
+		#ser.write("MeArm turn Left\n")
+			BottomLeft()
+		#time.sleep(ServoDelayTime)
+		elif command =='2':  #底座右转
+		#ser.write("MeArm turn Right\n")
+			BottomRight()
+		#time.sleep(ServoDelayTime)
+		elif command =='3':  #上臂舵机向上
+		#ser.write("Arm A Up\n")
+			Arm_A_Up()
+		#time.sleep(ServoDelayTime)
+		elif command =='4':  #上臂舵机向下
+		#ser.write("Arm A Down\n")
+			Arm_A_Down()
+		#time.sleep(ServoDelayTime)         
+		elif command =='5':   #下臂舵机向上
+		#ser.write("Arm B Up\n")
+			Arm_B_Up()
+		#time.sleep(ServoDelayTime) 
+		elif command =='6':    #下臂舵机向下
+		#ser.write("Arm B Down\n")
+			Arm_B_Down()
+		#time.sleep(ServoDelayTime)            
+		elif command =='7':  #打开手爪 （加速）
+		#ser.write("Clamp Open\n")
+			ClampOpen()
+		elif command =='8':  #闭合手爪 （减速）
+		#.write("Clamp Close\n")
+			ClampClose()
+		elif command =='\x1b':break
 def destroy():
 	GPIO.cleanup()
 
 if __name__ == "__main__":
         setup()
-        Re_Servo()
+	L_Motor=GPIO.PWM(PWMA,100)
+	L_Motor.start(0)
+	R_Motor=GPIO.PWM(PWMB,100)
+	R_Motor.start(0)
 
+        Re_Servo()
 	old_settings=termios.tcgetattr(sys.stdin)
         try:
 
@@ -378,7 +407,7 @@ if __name__ == "__main__":
                 destroy()
 		print "end"
 	except KeyboardInterrupt:
-		destory()
+		destroy()
 		print "end"
 	finally:
 		termios.tcsetattr(sys.stdin,termios.TCSADRAIN,old_settings)
