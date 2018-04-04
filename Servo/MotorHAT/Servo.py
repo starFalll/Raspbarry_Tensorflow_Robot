@@ -9,6 +9,8 @@ import serial
 import tty
 import select
 import termios
+#from threading import Thread
+from ctypes import *
 
 #ser = serial.Serial("/dev/ttyAMA0",9600)  #串口波特率设置
 
@@ -68,16 +70,14 @@ BIN2  =  24
 
 GPIO_S = 21 
 GPIO_R1 = 20
-GPIO_R2 = 5
+GPIO_R2 = 5 #GPIO_S,GPIO_R1,GPIO_R2对应的是c语言里面wiringpi库的wpi编码方式
 GPIO_STEP1 = 6
 GPIO_STEP2 = 13
 GPIO_STEP3 = 19
 GPIO_STEP4 = 26
 car_sleep = 0.05
 car_speed = 70
-var1 = 0
-var2 = 0
-signal = 0
+
 
 def setServoPulse(channel, pulse):
   pulseLength = 1000000.0                   # 1,000,000 us per second
@@ -169,7 +169,7 @@ def t_right(speed,t_time):
         GPIO.output(BIN2,True)#BIN2
         GPIO.output(BIN1,False) #BIN1
         time.sleep(t_time)    
-
+'''
 def checkdist(GPIO_R,var):
 	global signal
 	while True:
@@ -184,7 +184,7 @@ def checkdist(GPIO_R,var):
         	time.sleep(0.000015)
         	GPIO.output(GPIO_S,GPIO.LOW)
         	while not GPIO.input(GPIO_R):
-                	pass
+			pass
        		#发现高电平时开时计时
         	t1 = time.time()
         	while GPIO.input(GPIO_R):
@@ -194,14 +194,14 @@ def checkdist(GPIO_R,var):
         	#返回距离，单位为米
         	dist = (t2-t1)*340/2
  		if dist < 0.05:
-			var = 1
+			var[0] = 1
 			#t_stop(1)
 		else:
-			var = 0
+			var[0] = 0
 		print dist
 		signal = 0
 		time.sleep(0.1)
-           
+'''           
 def setup():
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
@@ -215,13 +215,13 @@ def setup():
 	GPIO.setup(PWMB,GPIO.OUT)
 	pwm.setPWMFreq(50)
 
-        GPIO.setup(GPIO_S,GPIO.OUT)
+        #GPIO.setup(GPIO_S,GPIO.OUT)
 	GPIO.setup(GPIO_STEP1,GPIO.OUT)
         GPIO.setup(GPIO_STEP2,GPIO.OUT)
 	GPIO.setup(GPIO_STEP3,GPIO.OUT)
         GPIO.setup(GPIO_STEP4,GPIO.OUT)
-	GPIO.setup(GPIO_R1,GPIO.IN)
-        GPIO.setup(GPIO_R2,GPIO.IN)
+	#GPIO.setup(GPIO_R1,GPIO.IN)
+        #GPIO.setup(GPIO_R2,GPIO.IN)
         #GPIO.setup(GPIO_R3,GPIO.IN)
         
 def Re_Servo():
@@ -327,11 +327,18 @@ getch = _Getch()
 
 def loop():
 	try:
-		thread.start_new_thread(checkdist,(GPIO_R1,var1,))
+		#lock=Lock()
+		#thread.start_new_thread(checkdist,(GPIO_R1,var1,))
 		#thread.start_new_thread(checkdist,(GPIO_R2,var2,))
-		pass
+		lib=cdll.LoadLibrary("/home/pi/Raspbarry_Tensorflow_Car/Servo/MotorHAT/libcheck.so")
+		signal=c_int(0)
+		var1=c_int(0)
+		var2=c_int(0)
+		thread.start_new_thread(lib.checkdist,(GPIO_R1,byref(var1),byref(signal),GPIO_S,))
+		thread.start_new_thread(lib.checkdist,(GPIO_R2,byref(var2),byref(signal),GPIO_S,)) 
 			
-	except:
+	except Exception as e:
+		print e
 		print "Error:unable to start thread"
 	while True:
 	     #command=ser.read()
@@ -342,9 +349,9 @@ def loop():
 			t_up(car_speed,0.05)    #前进
 		elif command == 's':
 			t_down(car_speed,0.05)  #后退
-		elif command == 'd' and var2 == 0:
+		elif command == 'd' and var2.value == 0:
 			t_right(car_speed,0.05) #右转
-		elif command == 'a' and var1 == 0:
+		elif command == 'a' and var1.value == 0:
 			t_left(car_speed,0.05)  #左转
 		elif command == 'q':
 			b_up()
