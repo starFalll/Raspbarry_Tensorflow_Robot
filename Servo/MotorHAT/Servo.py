@@ -331,11 +331,13 @@ def loop():
 		#thread.start_new_thread(checkdist,(GPIO_R1,var1,))
 		#thread.start_new_thread(checkdist,(GPIO_R2,var2,))
 		lib=cdll.LoadLibrary("/home/pi/Raspbarry_Tensorflow_Car/Servo/MotorHAT/libcheck.so")
+		stop_func=CFUNCTYPE(None,c_int)
+		func=stop_func(t_stop)
 		signal=c_int(0)
 		var1=c_int(0)
 		var2=c_int(0)
-		thread.start_new_thread(lib.checkdist,(GPIO_R1,byref(var1),byref(signal),GPIO_S,))
-		thread.start_new_thread(lib.checkdist,(GPIO_R2,byref(var2),byref(signal),GPIO_S,)) 
+		thread.start_new_thread(lib.checkdist,(GPIO_R1,byref(var1),byref(signal),GPIO_S,func,))
+		thread.start_new_thread(lib.checkdist,(GPIO_R2,byref(var2),byref(signal),GPIO_S,func,)) 
 			
 	except Exception as e:
 		print e

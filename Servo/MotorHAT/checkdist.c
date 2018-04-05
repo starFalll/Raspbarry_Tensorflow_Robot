@@ -8,7 +8,7 @@
 
  
 
-void checkdist(int GPIO_R,int *var,int *signal,int GPIO_S){
+void checkdist(int GPIO_R,int *var,int *signal,int GPIO_S,void(*t_stop)(int)){
 	struct timeval tv1;  
     	struct timeval tv2; 
 	long start, stop; 
@@ -39,7 +39,7 @@ void checkdist(int GPIO_R,int *var,int *signal,int GPIO_S){
 		dis = ((double)(stop - start) * 34000 / 2)/1000000;  //求出距离 
 		if(dis<5){
 			*var=1;
-			//t_stop(1)
+			t_stop(1);
 		}
 		else
 			*var=0;
